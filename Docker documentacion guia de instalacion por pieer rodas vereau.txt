@@ -1,0 +1,98 @@
+Hacemos la imagen de my sql:
+
+-docker pull mysql:5.7
+
+revisamos las images 
+
+-docker images
+
+Corremos el mysql en el puerto que queremos le damos el nombre y contraseña
+que deseamos  para el contenedor
+
+-docker run -d -p 13306:3306 --name pruebaapisql -e MYSQL_ROOT_PASSWORD=secret mysql --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+Luego de revisar que el docker este corriendo con el comando
+
+-docker ps 
+
+Si no es asi nos fijamos en si ya se creo el contenedor pero no esta corriendo
+
+-docker ps -a
+
+Ejecutamos y entramos al contenedor del mysql para darle permisos y privileguios
+
+-docker exec -it pruebaapisql mysql -uroot -p
+
+Le ponemos la contraseña que le dimos anteriormente, luego logeados le damos los permisos
+
+- create user 'mysqluser' identified by 'secret';
+-grant all privileges on *.* to 'mysqluser'@'%';
+
+
+Luego de eso entramos en este caso al Mysql y creamos una coneccion con el mismo puerto
+usuario , contraseña y probamos si funciona, en este caso el puerto seria 13306, el usuario
+mysqluser su contraseña secret y luego deberiamos darle test conection , si no emitimos
+ningun paso deberia funcionarnos
+
+
+Despues entramos al aplication properties de nuestro programa y le cambiamos el puerto
+a 13006, tambien cambiamos el usuario y contraseña en properties
+ para probar y ver si funciona, luego al ver que nuestra api funciona correctamente
+hacemos el siguiente paso
+
+
+
+---------RED-------------
+
+Ahora verificamos que nuestro mysql este en nuestra red con el proposito de poder poner esta
+y la de la api en una misma red para poder levantar el api 
+
+ejecutamos el comando:
+-docker network inspect bridge
+y nos fijamos que nuestro mysql contenedor que creamos esta dentro de esa network
+nosotros queremos sacar el mysql de esa red bridge y crear otra y ponerlo ahi
+primero:
+
+-docker network disconnect bridge pruebaapisql
+
+luego de sacarle creamos una red llamada my-data
+
+-docker network create --driver bridge my-data
+
+luego colocamos el contenedor del sql a esa red
+
+-docker network connect my-data pruebaapisql
+
+
+----------Dockerizar el api----------
+luego de revisar con el comando docker network inspect my-data revisamos y confirmamos
+que el contenedor este ahi ahora nos dirigimos a aplication properties de nuestro programa
+y cambiamos el localhost por el nombre del contenedor un ejemplo podria ser esto:
+
+jdbc:mysql://pruebaapisql/AnuncioAlbergue
+
+en donde ahi mostramos que estamos conectados al contenedor que creamos del sql luego
+dentro del proyecto, terminal o cmd de nuestro proyecto creamos el jar con el comando
+-mvn clean package -DskipTests=true
+
+luego de eso nos genera el jar y vereficamos el archivo docker de nuestro programa
+en este caso es el mismo que hicimos en clase con la observacion que cambie el jdk
+17 por errores propios , el docker se puede encontrar en la misma carpeta del proyecto
+
+luego de eso ya dockerizamos nuestro api con el comando
+
+docker build -t oxpieerox/anuncioalbergue:v2 .
+
+luego lo corremos en el puerto 28090 siendo el 8090 nuestro local hacemos el comando
+
+docker run --network my-data -d -p 28090:8090 --name anunciosalbergue f0419
+
+luego de eso nuestro api deberia correr en ese puerto dentro de la misma red del mysql
+donde estaria corriendo con facilidad finalmente si tenemos algun error
+en el docker ps para ver los contenedores corriendo que deberia funcionar ponemos
+
+-docker logs anunciosalbergue 
+
+para revisar si hay errores en mi caso me corrio el programa al ejecutar el ultimo comando sin errores
+
+VIDEO DE PRUEBA : https://drive.google.com/file/d/1OVymcMFRlZuI2ERxxFeu_7pdhbddV5H0/view?usp=sharing
